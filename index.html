@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action ou Vérité</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .player-list {
+            margin-top: 20px;
+        }
+        .player-list ul {
+            list-style: none;
+            padding: 0;
+            text-align: center;
+        }
+        .player-list li {
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        .current-player {
+            font-weight: bold;
+        }
+        .action-or-truth {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .action-button, .truth-button {
+            width: 45%;
+            font-size: 16px;
+        }
+        .selected {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Action ou Vérité</h1>
+        <div id="setup">
+            <label for="numPlayers">Nombre de joueurs :</label>
+            <input type="number" id="numPlayers" min="1" value="1">
+            <button onclick="setupPlayers()">Configurer</button>
+        </div>
+        <div id="players" style="display: none;">
+            <h2>Liste des joueurs</h2>
+            <div class="player-list">
+                <ul id="playerList"></ul>
+            </div>
+            <button onclick="startGame()">Commencer le jeu</button>
+        </div>
+        <div id="game" style="display: none;">
+            <h2>Ordre de passage</h2>
+            <ul id="orderList"></ul>
+            <div class="action-or-truth" id="actionOrTruth" style="display: none;">
+                <h3 id="playerName"></h3>
+                <p id="playerPrompt"></p>
+                <div class="button-group">
+                    <button onclick="chooseActionOrTruth('action')" id="actionButton" class="action-button">Action</button>
+                    <button onclick="chooseActionOrTruth('truth')" id="truthButton" class="truth-button">Vérité</button>
+                </div>
+            </div>
+            <button onclick="nextPlayer()" id="nextButton" style="display: none;">Joueur suivant</button>
+        </div>
+    </div>
+
+    <script>
+        let players = [];
+        let currentPlayerIndex = 0;
+        let actionChosen = false;
+        let truthChosen = false;
+        const actions = [
+            "Faire une danse drôle.",
+            "Imiter un animal de votre choix.",
+            "Chanter une chanson sans paroles.",
+            "Faire 10 pompes.",
+            "Faire le tour de la pièce en courant.",
+            "Raconter une blague.",
+            "Faire semblant de pleurer de rire.",
+            "Faire une grimace.",
+            "Raconter une histoire drôle.",
+            // Nouveaux gages ajoutés
+            "Mimer une scène de film célèbre.",
+            "Faire une impression d'une célébrité.",
+            "Inventer une chanson sur place et la chanter.",
+            "Écrire un poème sur le thème de l'amitié.",
+            "Faire une imitation parfaite de la voix de quelqu'un ici présent.",
+            "Inventer une danse et l'enseigner à tout le monde.",
+            "Décrire un moment embarrassant que vous avez vécu.",
+            "Faire une démonstration de jonglage avec n'importe quel objet à portée de main.",
+            "Imiter une personne célèbre en train de faire du sport.",
+            // Encore plus de nouveaux gages ajoutés
+            "Faire une performance de mime.",
+            "Faire un numéro de stand-up improvisé.",
+            "Inventer un nouveau slogan publicitaire pour un produit au hasard.",
+            "Faire une interprétation dramatique d'une scène banale.",
+            "Écrire un haïku sur un sujet choisi par les autres joueurs.",
+            "Faire une démonstration d'un talent secret que vous avez.",
+            "Raconter une anecdote drôle et vraie de votre vie.",
+            "Imiter un personnage de dessin animé.",
+            "Faire une démonstration de votre danse la plus bizarre."
+        ];
+        const truths = [
+            "Quelle est la chose la plus bizarre que vous ayez mangée ?",
+            "Quel est votre plus grand regret ?",
+            "Quel est le mensonge le plus grave que vous ayez dit ?",
+            "Avez-vous déjà triché pendant un jeu ?",
+            "Quelle est la chose la plus embarrassante que vous ayez faite ?",
+            "Quel est votre plus grand secret ?",
+            "Quel est votre plus grand rêve ?",
+            "Quelle est la personne que vous admirez le plus ?",
+            "Avez-vous déjà eu un béguin pour quelqu'un ici présent ?",
+            // Nouvelles vérités ajoutées
+            "Quel est votre film préféré et pourquoi ?",
+            "Décrivez votre pire expérience de voyage.",
+            "Avez-vous déjà eu un animal de compagnie ? Lequel ?",
+            "Quelle est la meilleure blague que vous connaissez ?",
+            "Quel est votre plat préféré et pourquoi ?",
+            "Avez-vous déjà fait semblant d'être malade pour éviter quelque chose ?",
+            "Quel est le pire cadeau que vous ayez jamais reçu ?",
+            "Avez-vous déjà pleuré devant un film ? Si oui, lequel ?",
+            "Quel est le mensonge le plus drôle que vous ayez déjà raconté ?",
+            // Encore plus de nouvelles vérités ajoutées
+            "Quel est votre plus grand rêve pour l'avenir ?",
+            "Quelle est votre plus grande peur ?",
+            "Quelle est la chose la plus folle que vous ayez jamais faite par amour ?",
+            "Quelle est votre opinion la plus controversée ?",
+            "Quel est votre souvenir le plus précieux de l'enfance ?",
+            "Quelle est la chose que vous changeriez dans le monde si vous le pouviez ?",
+            "Avez-vous déjà eu un accident embarrassant ? Décrivez-le.",
+            "Quelle est votre plus grande réussite jusqu'à présent ?",
+            "Quelle est la chose la plus bizarre que vous ayez collectionnée ?"
+        ];
+
+        function setupPlayers() {
+            const numPlayers = parseInt(document.getElementById('numPlayers').value, 10);
+            if (numPlayers < 1) {
+                alert("Veuillez entrer un nombre valide de joueurs.");
+                return;
+            }
+            players = [];
+            for (let i = 0; i < numPlayers; i++) {
+                const playerName = prompt(`Nom du joueur ${i + 1}:`);
+                if (playerName) {
+                    players.push(playerName);
+                } else {
+                    alert("Veuillez entrer un nom de joueur.");
+                    return;
+                }
+            }
+            displayPlayers();
+        }
+
+        function displayPlayers() {
+            const playerList = document.getElementById('playerList');
+            playerList.innerHTML = '';
+            players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player;
+                playerList.appendChild(li);
+            });
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('players').style.display = 'block';
+        }
+
+        function startGame() {
+            if (players.length < 1) {
+                alert("Ajoutez des joueurs avant de commencer le jeu.");
+                return;
+            }
+            displayOrder();
+        }
+
+        function displayOrder() {
+            const orderList = document.getElementById('orderList');
+            orderList.innerHTML = '';
+            const shuffledPlayers = shuffleArray(players.slice()); // Copie du tableau mélangée
+            shuffledPlayers.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player;
+                orderList.appendChild(li);
+            });
+            document.getElementById('players').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            currentPlayerIndex = 0; // Réinitialise l'index du joueur courant
+            showActionOrTruth();
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function showActionOrTruth() {
+            const playerName = document.getElementById('orderList').getElementsByTagName('li')[currentPlayerIndex].textContent;
+            const actionOrTruthDiv = document.getElementById('actionOrTruth');
+            actionOrTruthDiv.style.display = 'block';
+            document.getElementById('playerName').textContent = playerName;
+            document.getElementById('actionButton').classList.remove('selected');
+            document.getElementById('truthButton').classList.remove('selected');
+            document.getElementById('actionButton').disabled = false;
+            document.getElementById('truthButton').disabled = false;
+            document.getElementById('nextButton').style.display = 'none';
+            document.getElementById('playerPrompt').textContent = "Choisissez Action ou Vérité :";
+            actionChosen = false;
+            truthChosen = false;
+        }
+
+        function chooseActionOrTruth(choice) {
+            if (choice === 'action' && !actionChosen) {
+                document.getElementById('actionButton').classList.add('selected');
+                document.getElementById('truthButton').disabled = true;
+                document.getElementById('playerPrompt').textContent = getRandomAction();
+                actionChosen = true;
+                document.getElementById('nextButton').style.display = 'block';
+            } else if (choice === 'truth' && !truthChosen) {
+                document.getElementById('truthButton').classList.add('selected');
+                document.getElementById('actionButton').disabled = true;
+                document.getElementById('playerPrompt').textContent = getRandomTruth();
+                truthChosen = true;
+                document.getElementById('nextButton').style.display = 'block';
+            }
+        }
+
+        function getRandomAction() {
+            const randomIndex = Math.floor(Math.random() * actions.length);
+            return actions[randomIndex];
+        }
+
+        function getRandomTruth() {
+            const randomIndex = Math.floor(Math.random() * truths.length);
+            return truths[randomIndex];
+        }
+
+        function nextPlayer() {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            showActionOrTruth();
+        }
+    </script>
+</body>
+</html>
+
